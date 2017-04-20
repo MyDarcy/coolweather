@@ -4,11 +4,15 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import android.preference.PreferenceManager;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -44,6 +48,12 @@ public class WeatherActivity extends AppCompatActivity {
     private TextView tvSport;
     private ImageView ivBingPic;
 
+    public SwipeRefreshLayout sflRefreshWeather;
+    private String mWeatherId;
+
+    DrawerLayout drawerLayout;
+    private Button btNavHOme;
+
 
 
     @Override
@@ -72,21 +82,46 @@ public class WeatherActivity extends AppCompatActivity {
         tvSport = (TextView) findViewById(R.id.tv_sport);
         ivBingPic = (ImageView) findViewById(R.id.iv_bing_pic);
 
+        sflRefreshWeather = (SwipeRefreshLayout) findViewById(R.id.srl_refresh_weather);
+        sflRefreshWeather.setColorSchemeColors(R.color.colorPrimary);
+
+        drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        btNavHOme = (Button) findViewById(R.id.bt_nav_home);
+
+        btNavHOme.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
+
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = preferences.getString("weather", null);
         if (weatherString != null) {
             // 有缓存的时候直接去解析天气数据;
             Log.d("WeatherActivity", weatherString);
             Weather weather = Utilities.handleWeatherResponse(weatherString);
+
+            mWeatherId = weather.basic.weatherId;
+            Log.d("WeatherActivity nnull", mWeatherId);
             // 然后去展示就好了;
             showWeatherInfo(weather);
         } else {
             // 无缓存时候去服务器查询天气;
-            String weatherId = getIntent().getStringExtra("weather_id");
+            mWeatherId = getIntent().getStringExtra("weather_id");
+            Log.d("WeatherActivity null", mWeatherId);
             // 这个时候先将ScrollView设置为不可见;
             svWeatherLayout.setVisibility(View.INVISIBLE);
-            requestWeather(weatherId);
+            requestWeather(mWeatherId);
         }
+
+        sflRefreshWeather.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                Log.d("WeatherActivity refresh", mWeatherId + "");
+                requestWeather(mWeatherId);
+            }
+        });
 
         // 获取bing pic
         String bingPic = preferences.getString("bing_pic", null);
@@ -123,7 +158,7 @@ public class WeatherActivity extends AppCompatActivity {
         });
     }
 
-    private void requestWeather(String weatherId) {
+    public void requestWeather(String weatherId) {
         String url = "http://guolin.tech/api/weather?cityid=" + weatherId + "&key=961043815d6140fe8827c2ee76386ed9";
         HttpUtils.sendOkHttpRequest(url, new Callback() {
             @Override
@@ -133,6 +168,8 @@ public class WeatherActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         Toast.makeText(WeatherActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+                        // 表示刷新事件结束;
+                        sflRefreshWeather.setRefreshing(false);
                     }
                 });
             }
@@ -153,6 +190,8 @@ public class WeatherActivity extends AppCompatActivity {
                         } else {
                             Toast.makeText(WeatherActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
                         }
+                        // 表示刷新事件结束;
+                        sflRefreshWeather.setRefreshing(false);
                     }
                 });
             }
