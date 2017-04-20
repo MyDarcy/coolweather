@@ -1,5 +1,6 @@
 package com.darcy.coolweather;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.darcy.coolweather.gson.Forecast;
 import com.darcy.coolweather.gson.Weather;
+import com.darcy.coolweather.service.AutoUpdateService;
 import com.darcy.coolweather.util.HttpUtils;
 import com.darcy.coolweather.util.Utilities;
 
@@ -236,5 +238,8 @@ public class WeatherActivity extends AppCompatActivity {
         tvSport.setText(sport);
         svWeatherLayout.setVisibility(View.VISIBLE);
 
+        // 自动更新天气;
+        Intent intent = new Intent(this, AutoUpdateService.class);
+        startService(intent);
     }
 }
